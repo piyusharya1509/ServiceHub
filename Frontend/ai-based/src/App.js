@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Vendors from "./pages/Vendors";
 import Booking from "./pages/Booking";
 import UserDashboard from "./pages/UserDashboard";
+import VendorDashboard from "./pages/VendorDashboard";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/vendors" element={<Vendors />} />
         <Route path="/booking" element={<Booking />} />
         <Route path="/dashboard" element={<UserDashboard />} />
+        <Route path="/vendor-dashboard" element={<VendorDashboard />} />
       </Routes>
     </BrowserRouter>
   );
