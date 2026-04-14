@@ -5,57 +5,91 @@ const helmet = require("helmet");
 const session = require("express-session");
 const passport = require("passport");
 
+const rateLimit = require("express-rate-limit");
+const mongoSanitize = require("express-mongo-sanitize");
+const xss = require("xss-clean");
+const hpp = require("hpp");
+
 require("./config/passport");
 
 const authRoutes = require("./routes/authRoutes");
 const vendorRoutes = require("./routes/vendorRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
-const { notFound, errorHandler } = require("./middleware/errorHandler");
 const userRoutes = require("./routes/userRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const withdrawalRoutes = require("./routes/withdrawalRoutes");
 
+const { notFound, errorHandler } = require("./middleware/errorHandler");
+
 const app = express();
 
-// Security
+// =====================
+// 🔐 SECURITY HEADERS
+// =====================
 app.use(helmet());
 
-// CORS
+// =====================
+// 🚫 RATE LIMITING
+// =====================
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+app.use("/api", limiter);
+
+// =====================
+// 🛡️ DATA SANITIZATION
+// =====================
+app.use(mongoSanitize());
+app.use(xss());
+app.use(hpp());
+
+// =====================
+// 🔐 CORS
+// =====================
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+    origin: process.env.CLIENT_ORIGIN,
     credentials: true,
   })
 );
 
-// Session (REQUIRED FOR PASSPORT)
+// =====================
+// SESSION
+// =====================
 app.use(
   session({
-    secret: process.env.JWT_SECRET || "secret",
+    secret: process.env.JWT_SECRET,
     resave: false,
     saveUninitialized: false,
+    cookie: {
+      secure: true,
+      httpOnly: true,
+    },
   })
 );
 
-// Passport
+// =====================
+// PASSPORT
+// =====================
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Body parsing
+// =====================
+// BODY PARSER
+// =====================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Logger
+// =====================
+// LOGGER
+// =====================
 app.use(morgan("dev"));
 
-// Debug
-app.use((req, res, next) => {
-  console.log("ROUTE HIT:", req.method, req.url);
-  next();
-});
-
-// Health check
+// =====================
+// HEALTH CHECK
+// =====================
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
@@ -63,7 +97,9 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Routes
+// =====================
+// ROUTES
+// =====================
 app.use("/api/auth", authRoutes);
 app.use("/api/vendors", vendorRoutes);
 app.use("/api/services", serviceRoutes);
@@ -72,7 +108,9 @@ app.use("/api/user", userRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/withdrawals", withdrawalRoutes);
 
-// Error handling
+// =====================
+// ERROR HANDLING
+// =====================
 app.use(notFound);
 app.use(errorHandler);
 

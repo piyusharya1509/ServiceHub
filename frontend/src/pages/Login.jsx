@@ -33,14 +33,12 @@ function Login() {
       setLoading(true);
 
       const res = await API.post("/auth/login", formData);
-
       const { user, token } = res.data;
 
       if (user.role !== role) {
         setError(
           `This account is registered as ${user.role}. Please switch role.`
         );
-        setLoading(false);
         return;
       }
 
@@ -59,16 +57,15 @@ function Login() {
     }
   };
 
-  // 🔥 GOOGLE LOGIN
+  // 🔥 GOOGLE LOGIN (PRODUCTION URL)
   const handleGoogleLogin = () => {
     window.location.href =
-      "http://localhost:5000/api/auth/google";
+      "https://servicehub-77ky.onrender.com/api/auth/google";
   };
 
   return (
     <MainLayout>
       <div className="min-h-[80vh] flex items-center justify-center">
-
         <div className="bg-white shadow-xl rounded-2xl w-full max-w-md p-8">
 
           <h2 className="text-3xl font-bold text-center mb-2">
@@ -84,9 +81,7 @@ function Login() {
             <button
               onClick={() => setRole("customer")}
               className={`flex-1 py-2 rounded-full ${
-                role === "customer"
-                  ? "bg-teal-600 text-white"
-                  : ""
+                role === "customer" ? "bg-teal-600 text-white" : ""
               }`}
             >
               Customer
@@ -95,16 +90,13 @@ function Login() {
             <button
               onClick={() => setRole("vendor")}
               className={`flex-1 py-2 rounded-full ${
-                role === "vendor"
-                  ? "bg-teal-600 text-white"
-                  : ""
+                role === "vendor" ? "bg-teal-600 text-white" : ""
               }`}
             >
               Vendor
             </button>
           </div>
 
-          {/* ERROR */}
           {error && (
             <p className="text-red-500 text-sm mb-4 text-center">
               {error}
@@ -113,7 +105,6 @@ function Login() {
 
           {/* FORM */}
           <form onSubmit={handleSubmit} className="space-y-4">
-
             <input
               type="email"
               name="email"
@@ -121,7 +112,7 @@ function Login() {
               value={formData.email}
               onChange={handleChange}
               required
-              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+              className="w-full border p-3 rounded-lg"
             />
 
             <input
@@ -131,19 +122,18 @@ function Login() {
               value={formData.password}
               onChange={handleChange}
               required
-              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+              className="w-full border p-3 rounded-lg"
             />
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700"
+              className="w-full bg-teal-600 text-white py-3 rounded-lg"
             >
               {loading ? "Logging in..." : "Login"}
             </button>
           </form>
 
-          {/* SIGNUP */}
           <p className="text-center mt-6 text-sm">
             Don’t have an account?
             <span
@@ -154,10 +144,10 @@ function Login() {
             </span>
           </p>
 
-          {/* 🔥 GOOGLE BUTTON */}
+          {/* GOOGLE */}
           <button
             onClick={handleGoogleLogin}
-            className="w-full mt-6 bg-red-500 text-white py-3 rounded-lg hover:bg-red-600"
+            className="w-full mt-6 bg-red-500 text-white py-3 rounded-lg"
           >
             Continue with Google
           </button>

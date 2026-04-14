@@ -6,13 +6,19 @@ function OAuthSuccess() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+
     const token = params.get("token");
+    const redirect = params.get("redirect");
 
     if (token) {
       localStorage.setItem("token", token);
 
-      // 🔥 redirect based on role (optional later)
-      navigate("/dashboard");
+      // 🔥 AUTO REDIRECT BASED ON ROLE
+      if (redirect) {
+        navigate(redirect);
+      } else {
+        navigate("/dashboard");
+      }
     } else {
       navigate("/login");
     }
