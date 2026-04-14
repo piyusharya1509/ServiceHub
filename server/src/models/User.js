@@ -3,11 +3,8 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+    name: { type: String, required: true, trim: true },
+
     email: {
       type: String,
       required: true,
@@ -15,27 +12,46 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+
     password: {
       type: String,
       required: true,
       minlength: 6,
       select: false,
     },
+
     role: {
       type: String,
       enum: ["customer", "vendor", "admin"],
       default: "customer",
     },
-    phone: {
+
+    phone: { type: String, default: "" },
+
+    provider: {
       type: String,
-      default: "",
+      enum: ["local", "google"],
+      default: "local",
+    },
+
+    isProfileComplete: { type: Boolean, default: false },
+
+    // 🔥 KYC SYSTEM
+    isKYCSubmitted: { type: Boolean, default: false },
+    isVerified: { type: Boolean, default: false },
+
+    kyc: {
+      aadhaar: String,
+      pan: String,
+      documentUrl: String,
     },
   },
   { timestamps: true }
 );
 
-userSchema.pre("save", async function hashPassword(next) {
-  if (!this.isModified("password")) {
+// HASH PASSWORD
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password") || this.provider === "google") {
     return next();
   }
 
@@ -44,7 +60,7 @@ userSchema.pre("save", async function hashPassword(next) {
   next();
 });
 
-userSchema.methods.matchPassword = async function matchPassword(candidatePassword) {
+userSchema.methods.matchPassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 

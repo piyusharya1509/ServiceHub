@@ -13,7 +13,6 @@ function OAuthSuccess() {
     if (token) {
       localStorage.setItem("token", token);
 
-      // 🔥 AUTO REDIRECT BASED ON ROLE
       if (redirect) {
         navigate(redirect);
       } else {

@@ -20,11 +20,14 @@ passport.use(
             name: profile.displayName,
             email,
             password: "google_oauth",
-            role: "customer", // default
+            role: "customer",
+            provider: "google",
+            isProfileComplete: false,
           });
         }
 
         return done(null, user);
+
       } catch (err) {
         return done(err, null);
       }

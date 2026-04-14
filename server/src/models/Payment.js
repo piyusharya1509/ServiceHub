@@ -2,29 +2,37 @@ const mongoose = require("mongoose");
 
 const paymentSchema = new mongoose.Schema(
   {
-    user: {
+    booking: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Booking",
+      required: true,
+    },
+
+    customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
 
     vendor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Vendor",
+      ref: "User",
     },
 
     amount: Number,
 
-    // 🔥 NEW FIELDS
-    platformFee: Number,
-    vendorAmount: Number,
-
-    paymentId: String,
-    orderId: String,
-
+    // 🔥 ESCROW STATUS
     status: {
       type: String,
-      default: "paid",
+      enum: ["held", "released"],
+      default: "held",
     },
+
+    isPaid: {
+      type: Boolean,
+      default: false,
+    },
+
+    paymentId: String,
   },
   { timestamps: true }
 );

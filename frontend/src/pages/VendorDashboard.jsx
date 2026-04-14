@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
+import toast from "react-hot-toast";
 
 function VendorDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -8,59 +9,77 @@ function VendorDashboard() {
   const [withdrawals, setWithdrawals] = useState([]);
   const [amount, setAmount] = useState("");
   const [profile, setProfile] = useState({ name: "", phone: "" });
+  const [loading, setLoading] = useState(false);
 
   const token = localStorage.getItem("token");
+  const API_URL = "https://servicehub-77ky.onrender.com/api";
 
   // =========================
   // FETCH BOOKINGS
   // =========================
   const fetchBookings = async () => {
-    const res = await fetch("http://localhost:5000/api/bookings/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    try {
+      const res = await fetch(`${API_URL}/bookings/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    const data = await res.json();
-    setBookings(data.bookings || []);
+      const data = await res.json();
+      setBookings(data.bookings || []);
+    } catch {
+      toast.error("Failed to load bookings ❌");
+    }
   };
 
   // =========================
   // FETCH USER
   // =========================
   const fetchUser = async () => {
-    const res = await fetch("http://localhost:5000/api/users/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    try {
+      const res = await fetch(`${API_URL}/user/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    setProfile({
-      name: data.user?.name || "",
-      phone: data.user?.phone || "",
-    });
+      setProfile({
+        name: data.user?.name || "",
+        phone: data.user?.phone || "",
+      });
+    } catch {
+      toast.error("Failed to load profile ❌");
+    }
   };
 
   // =========================
   // FETCH EARNINGS
   // =========================
   const fetchEarnings = async () => {
-    const res = await fetch("http://localhost:5000/api/payments/vendor-earnings", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    try {
+      const res = await fetch(`${API_URL}/payments/vendor-earnings`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    const data = await res.json();
-    setEarnings(data.total || 0);
+      const data = await res.json();
+      setEarnings(data.total || 0);
+    } catch {
+      toast.error("Failed to load earnings ❌");
+    }
   };
 
   // =========================
   // FETCH WITHDRAWALS
   // =========================
   const fetchWithdrawals = async () => {
-    const res = await fetch("http://localhost:5000/api/withdrawals/my-withdrawals", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    try {
+      const res = await fetch(`${API_URL}/withdrawals/my-withdrawals`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    const data = await res.json();
-    setWithdrawals(data.withdrawals || []);
+      const data = await res.json();
+      setWithdrawals(data.withdrawals || []);
+    } catch {
+      toast.error("Failed to load withdrawals ❌");
+    }
   };
 
   useEffect(() => {
@@ -74,59 +93,87 @@ function VendorDashboard() {
   // UPDATE STATUS
   // =========================
   const updateStatus = async (id, status) => {
-    await fetch(`http://localhost:5000/api/bookings/${id}/status`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ status }),
-    });
+    try {
+      setLoading(true);
 
-    fetchBookings();
+      await fetch(`${API_URL}/bookings/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      toast.success(`Job ${status} ✅`);
+      fetchBookings();
+    } catch {
+      toast.error("Action failed ❌");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // =========================
   // SAVE PROFILE
   // =========================
   const handleSave = async () => {
-    await fetch("http://localhost:5000/api/users/me", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(profile),
-    });
+    try {
+      setLoading(true);
 
-    alert("Profile updated ✅");
+      await fetch(`${API_URL}/user/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(profile),
+      });
+
+      toast.success("Profile updated ✅");
+    } catch {
+      toast.error("Update failed ❌");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // =========================
   // REQUEST WITHDRAWAL
   // =========================
   const requestWithdrawal = async () => {
-    if (!amount) return alert("Enter amount");
+    if (!amount) {
+      toast.error("Enter amount ❌");
+      return;
+    }
 
-    await fetch("http://localhost:5000/api/withdrawals/request", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        amount,
-        accountDetails: {
-          accountNumber: "1234567890",
-          ifsc: "SBIN0001234",
-          name: profile.name,
+    try {
+      setLoading(true);
+
+      await fetch(`${API_URL}/withdrawals/request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      }),
-    });
+        body: JSON.stringify({
+          amount,
+          accountDetails: {
+            accountNumber: "1234567890",
+            ifsc: "SBIN0001234",
+            name: profile.name,
+          },
+        }),
+      });
 
-    alert("Withdrawal requested 💸");
-    setAmount("");
-    fetchWithdrawals();
+      toast.success("Withdrawal requested 💸");
+      setAmount("");
+      fetchWithdrawals();
+    } catch {
+      toast.error("Withdrawal failed ❌");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -156,6 +203,9 @@ function VendorDashboard() {
                 <p className="text-2xl font-bold text-green-600">
                   ₹ {earnings}
                 </p>
+                <p className="text-sm text-gray-500">
+                  (Only released payments)
+                </p>
               </div>
 
               <div className="bg-white p-6 rounded-2xl shadow">
@@ -174,15 +224,17 @@ function VendorDashboard() {
 
                       <div>
                         <button
+                          disabled={loading}
                           onClick={() => updateStatus(b._id, "accepted")}
-                          className="bg-green-500 text-white px-3 py-1 mr-2 rounded"
+                          className="bg-green-500 text-white px-3 py-1 mr-2 rounded disabled:opacity-50"
                         >
                           Accept
                         </button>
 
                         <button
+                          disabled={loading}
                           onClick={() => updateStatus(b._id, "rejected")}
-                          className="bg-red-500 text-white px-3 py-1 rounded"
+                          className="bg-red-500 text-white px-3 py-1 rounded disabled:opacity-50"
                         >
                           Reject
                         </button>
@@ -196,18 +248,31 @@ function VendorDashboard() {
           {/* JOBS */}
           {activeTab === "jobs" && (
             <div className="bg-white p-6 rounded-2xl shadow">
-              <h2 className="mb-4">Accepted Jobs</h2>
+              <h2 className="mb-4">Jobs</h2>
 
-              {bookings
-                .filter((b) => b.status === "accepted")
-                .map((b) => (
-                  <div key={b._id} className="border-b py-3">
-                    <p>{b.vendorName}</p>
-                    <p className="text-sm text-gray-500">
-                      {b.date} • {b.time}
-                    </p>
-                  </div>
-                ))}
+              {bookings.map((b) => (
+                <div key={b._id} className="border-b py-3">
+                  <p>{b.vendorName}</p>
+                  <p className="text-sm text-gray-500">
+                    {b.date} • {b.time}
+                  </p>
+
+                  <p className="text-sm mt-1">
+                    Payment:{" "}
+                    <span
+                      className={
+                        b.status === "completed"
+                          ? "text-green-600 font-semibold"
+                          : "text-yellow-600 font-semibold"
+                      }
+                    >
+                      {b.status === "completed"
+                        ? "Paid 💰"
+                        : "In Escrow ⏳"}
+                    </span>
+                  </p>
+                </div>
+              ))}
             </div>
           )}
 
@@ -225,10 +290,11 @@ function VendorDashboard() {
                 />
 
                 <button
+                  disabled={loading}
                   onClick={requestWithdrawal}
-                  className="bg-teal-600 text-white px-4 py-2"
+                  className="bg-teal-600 text-white px-4 py-2 disabled:opacity-50"
                 >
-                  Request
+                  {loading ? "Processing..." : "Request"}
                 </button>
               </div>
 
@@ -265,10 +331,11 @@ function VendorDashboard() {
               />
 
               <button
+                disabled={loading}
                 onClick={handleSave}
-                className="bg-teal-600 text-white px-4 py-2"
+                className="bg-teal-600 text-white px-4 py-2 disabled:opacity-50"
               >
-                Save
+                {loading ? "Saving..." : "Save"}
               </button>
             </div>
           )}

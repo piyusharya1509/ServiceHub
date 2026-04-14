@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
+import { Toaster } from "react-hot-toast";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -9,31 +10,37 @@ import UserDashboard from "./pages/UserDashboard";
 import VendorDashboard from "./pages/VendorDashboard";
 import Signup from "./pages/Signup";
 import OAuthSuccess from "./pages/OAuthSuccess";
-
+import CompleteProfile from "./pages/CompleteProfile";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 function App() {
-
-  // 🔥 AUTO LOGIN CHECK
   useEffect(() => {
     const token = localStorage.getItem("token");
-
-    if (token) {
-      console.log("User session restored");
-    }
+    if (token) console.log("User session restored");
   }, []);
 
   return (
     <BrowserRouter>
-      <Routes>
+      <Toaster position="top-right" />
 
+      <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/vendors" element={<Vendors />} />
         <Route path="/booking" element={<Booking />} />
 
-        {/* 🔐 PROTECTED */}
+        <Route path="/oauth-success" element={<OAuthSuccess />} />
+
+        <Route
+          path="/complete-profile"
+          element={
+            <ProtectedRoute>
+              <CompleteProfile />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/dashboard"
           element={
@@ -41,10 +48,6 @@ function App() {
               <UserDashboard />
             </ProtectedRoute>
           }
-        />
-        <Route
-        path="/oauth-success"
-          element={<OAuthSuccess />}
         />
 
         <Route
@@ -55,7 +58,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
       </Routes>
     </BrowserRouter>
   );

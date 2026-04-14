@@ -9,6 +9,7 @@ const {
 } = require("../controllers/authController");
 
 const { protect } = require("../middleware/auth");
+const User = require("../models/User");
 
 const router = express.Router();
 
@@ -46,23 +47,38 @@ router.get(
   async (req, res) => {
     const role = req.session?.role || "customer";
 
-    // SET ROLE IF NEW USER
-    if (req.user.password === "google_oauth") {
-      req.user.role = role;
-      await req.user.save();
+    let user = await User.findById(req.user._id);
+
+    // 🔥 NEW USER SETUP
+    if (user.provider === "google" && user.password === "google_oauth") {
+      if (!user.role || user.role === "customer") {
+        user.role = role;
+      }
+
+      // profile incomplete if no phone
+      if (!user.phone) {
+        user.isProfileComplete = false;
+      }
+
+      await user.save();
     }
 
     const token = jwt.sign(
-      { id: req.user._id },
+      { id: user._id },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // 🔥 REDIRECT BASED ON ROLE
-    const redirectPath =
-      req.user.role === "vendor"
-        ? "/vendor-dashboard"
-        : "/dashboard";
+    // =====================
+    // 🔥 REDIRECT LOGIC
+    // =====================
+    let redirectPath = "/dashboard";
+
+    if (!user.isProfileComplete) {
+      redirectPath = "/complete-profile";
+    } else if (user.role === "vendor") {
+      redirectPath = "/vendor-dashboard";
+    }
 
     res.redirect(
       `${process.env.CLIENT_ORIGIN}/oauth-success?token=${token}&redirect=${redirectPath}`

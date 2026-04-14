@@ -50,7 +50,7 @@ router.post("/create-order", async (req, res) => {
 
 
 // =====================================
-// 🔥 VERIFY PAYMENT + COMMISSION + BOOKING
+// 🔥 VERIFY PAYMENT + ESCROW HOLD
 // =====================================
 router.post("/verify-payment", protect, async (req, res) => {
   try {
@@ -76,12 +76,12 @@ router.post("/verify-payment", protect, async (req, res) => {
       });
     }
 
-    // 💸 COMMISSION LOGIC
+    // 💸 COMMISSION
     const commissionRate = 0.1;
     const platformFee = amount * commissionRate;
     const vendorAmount = amount - platformFee;
 
-    // 💾 SAVE PAYMENT
+    // 💾 SAVE PAYMENT (🔥 ESCROW HELD)
     const payment = await Payment.create({
       user: req.user._id,
       vendor: vendorId,
@@ -90,7 +90,8 @@ router.post("/verify-payment", protect, async (req, res) => {
       vendorAmount,
       paymentId: razorpay_payment_id,
       orderId: razorpay_order_id,
-      status: "paid",
+      status: "held", // 🔥 CHANGED
+      isPaid: true,
     });
 
     // 📦 CREATE BOOKING
@@ -123,6 +124,37 @@ router.post("/verify-payment", protect, async (req, res) => {
 
 
 // =====================================
+// 🔥 RELEASE PAYMENT (ESCROW → VENDOR)
+// =====================================
+router.post("/release/:bookingId", protect, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.bookingId);
+
+    const payment = await Payment.findById(booking.paymentId);
+
+    if (!payment) {
+      return res.status(404).json({ success: false });
+    }
+
+    if (payment.status === "released") {
+      return res.json({ success: true, message: "Already released" });
+    }
+
+    payment.status = "released";
+    await payment.save();
+
+    res.json({
+      success: true,
+      message: "Payment released to vendor 💰",
+    });
+
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
+
+// =====================================
 // 🔥 USER PAYMENTS
 // =====================================
 router.get("/my-payments", protect, async (req, res) => {
@@ -143,12 +175,13 @@ router.get("/my-payments", protect, async (req, res) => {
 
 
 // =====================================
-// 🔥 VENDOR EARNINGS
+// 🔥 VENDOR EARNINGS (ONLY RELEASED)
 // =====================================
 router.get("/vendor-earnings", protect, async (req, res) => {
   try {
     const payments = await Payment.find({
       vendor: req.user._id,
+      status: "released", // 🔥 IMPORTANT
     });
 
     const total = payments.reduce((acc, p) => acc + p.vendorAmount, 0);
@@ -166,7 +199,7 @@ router.get("/vendor-earnings", protect, async (req, res) => {
 
 
 // =====================================
-// 🔥 ADMIN TOTAL REVENUE
+// 🔥 ADMIN REVENUE
 // =====================================
 router.get("/admin/revenue", protect, async (req, res) => {
   try {
@@ -188,11 +221,13 @@ router.get("/admin/revenue", protect, async (req, res) => {
 
 
 // =====================================
-// 🔥 ADMIN TOP VENDORS
+// 🔥 ADMIN TOP VENDORS (ONLY RELEASED)
 // =====================================
 router.get("/admin/top-vendors", protect, async (req, res) => {
   try {
-    const payments = await Payment.find();
+    const payments = await Payment.find({
+      status: "released",
+    });
 
     const vendorMap = {};
 
