@@ -4,6 +4,7 @@ const {
   getMyBookings,
   updateBookingStatus,
 } = require("../controllers/bookingController");
+
 const { protect, authorize } = require("../middleware/auth");
 
 const router = express.Router();

@@ -2,44 +2,41 @@ const mongoose = require("mongoose");
 
 const bookingSchema = new mongoose.Schema(
   {
-    customer: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
     vendor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      ref: "Vendor",
     },
-    service: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Service",
-      required: true,
-    },
-    scheduledAt: {
-      type: Date,
-      required: true,
-    },
-    address: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    notes: {
+
+    vendorName: {
       type: String,
       default: "",
-      trim: true,
     },
+
+    description: {
+      type: String,
+      default: "",
+    },
+
+    date: {
+      type: String,
+      default: "",
+    },
+
+    time: {
+      type: String,
+      default: "",
+    },
+
+    // 🔥 LINK PAYMENT
+    paymentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Payment",
+    },
+
     status: {
       type: String,
-      enum: ["pending", "accepted", "rejected", "completed", "cancelled"],
-      default: "pending",
-    },
-    totalAmount: {
-      type: Number,
-      required: true,
-      min: 0,
+      enum: ["Scheduled", "accepted", "rejected", "completed"],
+      default: "Scheduled",
     },
   },
   { timestamps: true }

@@ -25,7 +25,8 @@
     "mongodb": "7.1",
     "mongoose": "^8.23.0",
     "morgan": "^1.10.1",
-    "node": "^25.9.0"
+    "node": "^25.9.0",
+    "razorpay": "^2.9.6"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"

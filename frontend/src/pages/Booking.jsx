@@ -9,78 +9,131 @@ function Booking() {
   const location = useLocation();
   const vendor = location.state;
 
-  // 🔥 FORM STATE
   const [details, setDetails] = useState("");
-  const [file, setFile] = useState(null);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
 
-  // 🔥 SUBMIT BOOKING
-  const handleBooking = async () => {
-    try {
-      const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          vendorName: vendor?.name,
-          description: details,
-          date,
-          time,
-        }),
-      });
+  if (!vendor) {
+    return <p className="p-6">No vendor selected</p>;
+  }
+
+  // =====================================
+  // 🔥 HANDLE PAYMENT + BOOKING
+  // =====================================
+  const handlePayment = async () => {
+    try {
+      if (!date || !time || !details) {
+        return alert("Fill all fields ❗");
+      }
+
+      // 1️⃣ CREATE ORDER FROM BACKEND
+      const res = await fetch(
+        "http://localhost:5000/api/payments/create-order",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount: vendor.price || 500,
+          }),
+        }
+      );
 
       const data = await res.json();
 
-      if (data.success) {
-        alert("Booking Confirmed ✅");
-
-        // 🔥 SAVE LOCALLY (for dashboard)
-        const oldBookings =
-          JSON.parse(localStorage.getItem("bookings")) || [];
-
-        const newBooking = {
-          vendorName: vendor?.name,
-          details,
-          date,
-          time,
-          status: "Scheduled",
-        };
-
-        const updatedBookings = [...oldBookings, newBooking];
-
-        localStorage.setItem(
-          "bookings",
-          JSON.stringify(updatedBookings)
-        );
-
-        // 🔥 REDIRECT
-        navigate("/dashboard");
-      } else {
-        alert(data.message || "Booking failed ❌");
+      if (!data.success) {
+        return alert("Order creation failed ❌");
       }
 
-    } catch (error) {
-      console.error(error);
-      alert("Server error ❌");
+      // 2️⃣ OPEN RAZORPAY CHECKOUT
+      const options = {
+        key: "rzp_test_xxxxx", // 🔥 PUT YOUR REAL KEY HERE
+        amount: data.order.amount,
+        currency: "INR",
+        name: "ServiceHub",
+        description: vendor.name,
+        order_id: data.order.id,
+
+        handler: async function (response) {
+          try {
+            // 3️⃣ VERIFY PAYMENT
+            const verifyRes = await fetch(
+              "http://localhost:5000/api/payments/verify-payment",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  ...response,
+                  amount: vendor.price,
+                  vendorId: vendor._id,
+                }),
+              }
+            );
+
+            const verifyData = await verifyRes.json();
+
+            if (!verifyData.success) {
+              return alert("Payment verification failed ❌");
+            }
+
+            // 4️⃣ CREATE BOOKING
+            await fetch("http://localhost:5000/api/bookings", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                vendorId: vendor._id,
+                serviceId: "dummy-service-id",
+                scheduledAt: new Date(`${date}T${time}`),
+                address: details,
+              }),
+            });
+
+            alert("Payment successful 🎉 Booking confirmed");
+            navigate("/dashboard");
+
+          } catch (err) {
+            console.error(err);
+            alert("Booking failed ❌");
+          }
+        },
+
+        prefill: {
+          name: "User",
+          email: "test@email.com",
+        },
+
+        theme: {
+          color: "#14b8a6",
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
+    } catch (err) {
+      console.error(err);
+      alert("Payment failed ❌");
     }
   };
 
   return (
     <MainLayout>
-      <div className="max-w-4xl mx-auto bg-white p-10 rounded-2xl shadow">
+      <div className="max-w-4xl mx-auto bg-white p-10 rounded-2xl shadow mt-6">
 
-        {/* 🔥 VENDOR INFO */}
-        {vendor && (
-          <div className="mb-6">
-            <h2 className="text-xl font-bold">{vendor.name}</h2>
-            <p>₹ {vendor.price}</p>
-          </div>
-        )}
+        {/* VENDOR INFO */}
+        <div className="mb-6">
+          <h2 className="text-xl font-bold">{vendor.name}</h2>
+          <p>₹ {vendor.price}</p>
+        </div>
 
         {/* STEP INDICATOR */}
         <div className="flex justify-between mb-6 font-semibold">
@@ -95,14 +148,8 @@ function Booking() {
             <textarea
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              placeholder="Describe the issue..."
+              placeholder="Describe your issue..."
               className="w-full border p-4 rounded mb-4"
-            />
-
-            <input
-              type="file"
-              onChange={(e) => setFile(e.target.files[0])}
-              className="mb-4"
             />
 
             <button
@@ -152,21 +199,22 @@ function Booking() {
         {step === 3 && (
           <div className="text-center">
             <h2 className="text-xl font-bold mb-4">
-              Confirm Booking
+              Confirm & Pay
             </h2>
 
             <div className="bg-gray-100 p-4 rounded mb-4 text-left">
-              <p><strong>Vendor:</strong> {vendor?.name}</p>
+              <p><strong>Vendor:</strong> {vendor.name}</p>
               <p><strong>Details:</strong> {details}</p>
               <p><strong>Date:</strong> {date}</p>
               <p><strong>Time:</strong> {time}</p>
             </div>
 
+            {/* 🔥 PAY BUTTON */}
             <button
-              onClick={handleBooking}
+              onClick={handlePayment}
               className="bg-teal-600 text-white px-6 py-2 rounded"
             >
-              Confirm Booking
+              Pay ₹{vendor.price} & Confirm
             </button>
 
             <button

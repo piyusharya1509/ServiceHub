@@ -8,6 +8,10 @@ const vendorRoutes = require("./routes/vendorRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
+const userRoutes = require("./routes/userRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const withdrawalRoutes = require("./routes/withdrawalRoutes");
+
 
 const app = express();
 
@@ -49,6 +53,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/vendors", vendorRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/withdrawals", withdrawalRoutes);
 
 // Error handling
 app.use(notFound);

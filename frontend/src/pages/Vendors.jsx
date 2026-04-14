@@ -23,6 +23,10 @@ function Vendors() {
   const queryParams = new URLSearchParams(location.search);
   const categoryQuery = queryParams.get("category");
 
+  // 🔥 USER ROLE
+  const user = JSON.parse(localStorage.getItem("user"));
+  const isVendor = user?.role === "vendor";
+
   // 🔥 DEBOUNCE SEARCH
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -38,21 +42,10 @@ function Vendors() {
 
     params.set("maxPrice", price);
 
-    if (rating > 0) {
-      params.set("minRating", rating);
-    }
-
-    if (availability === "today") {
-      params.set("available", true);
-    }
-
-    if (debouncedSearch) {
-      params.set("search", debouncedSearch);
-    }
-
-    if (categoryQuery) {
-      params.set("category", categoryQuery);
-    }
+    if (rating > 0) params.set("minRating", rating);
+    if (availability === "today") params.set("available", true);
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (categoryQuery) params.set("category", categoryQuery);
 
     navigate(`/vendors?${params.toString()}`, { replace: true });
   }, [price, rating, availability, debouncedSearch]);
@@ -63,7 +56,6 @@ function Vendors() {
       setLoading(true);
 
       let url = `/vendors?maxPrice=${price}`;
-
       if (rating > 0) url += `&minRating=${rating}`;
       if (availability === "today") url += `&available=true`;
       if (debouncedSearch) url += `&search=${debouncedSearch}`;
@@ -71,11 +63,11 @@ function Vendors() {
 
       const res = await API.get(url);
 
-      setVendors(res.data.vendors);
-
+      setVendors(res.data.vendors || []);
     } catch (error) {
       console.log("Fallback triggered");
 
+      // fallback demo data
       setVendors([
         {
           id: "1",
@@ -118,7 +110,24 @@ function Vendors() {
   // 🔥 RESET FILTERS
   const resetFilters = () => {
     setSearch("");
+    setRating(0);
+    setAvailability("all");
+    setPrice(2000);
     navigate("/vendors");
+  };
+
+  // 🔥 HANDLE BOOKING
+  const handleBooking = (vendor) => {
+    if (!user) {
+      return navigate("/login");
+    }
+
+    if (isVendor) {
+      alert("Please login as customer to book services ❌");
+      return;
+    }
+
+    navigate("/booking", { state: vendor });
   };
 
   return (
@@ -129,7 +138,7 @@ function Vendors() {
         <div className="bg-white p-6 rounded-2xl shadow-md h-fit">
           <h2 className="font-semibold text-lg mb-4">Filters</h2>
 
-          {/* 🔍 SEARCH */}
+          {/* SEARCH */}
           <input
             type="text"
             placeholder="Search services..."
@@ -217,7 +226,7 @@ function Vendors() {
             Available Professionals
           </h1>
 
-          {/* 🔥 SKELETON LOADING */}
+          {/* LOADING */}
           {loading &&
             [...Array(5)].map((_, i) => (
               <SkeletonCard key={i} />
@@ -242,7 +251,7 @@ function Vendors() {
           {!loading &&
             vendors.map((vendor) => (
               <div
-                key={vendor.id}
+                key={vendor._id || vendor.id}
                 className="bg-white p-5 rounded-2xl shadow flex justify-between items-center hover:shadow-lg transition"
               >
                 <div className="flex gap-4 items-center">
@@ -259,18 +268,21 @@ function Vendors() {
                   </div>
                 </div>
 
+                {/* 🔥 FINAL BUTTON LOGIC */}
                 <button
-                  onClick={() =>
-                    navigate("/booking", { state: vendor })
-                  }
-                  disabled={!vendor.available}
+                  onClick={() => handleBooking(vendor)}
+                  disabled={!vendor.available || isVendor}
                   className={`px-4 py-2 rounded-lg text-white ${
-                    vendor.available
+                    vendor.available && !isVendor
                       ? "bg-teal-600 hover:bg-teal-700"
                       : "bg-gray-400 cursor-not-allowed"
                   }`}
                 >
-                  Book
+                  {!vendor.available
+                    ? "Unavailable"
+                    : isVendor
+                    ? "Switch to Customer"
+                    : "Book"}
                 </button>
               </div>
             ))}
